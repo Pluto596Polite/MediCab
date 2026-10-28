@@ -1,0 +1,34 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <!-- Red and white capsule with ink outline, as in the MediCab logo. -->
+    <group
+        android:pivotX="54"
+        android:pivotY="54"
+        android:rotation="-45"
+        android:scaleX="0.78"
+        android:scaleY="0.78"
+        android:translateX="4"
+        android:translateY="4">
+        <path
+            android:fillColor="#E01E37"
+            android:strokeColor="#111214"
+            android:strokeWidth="5"
+            android:strokeLineJoin="round"
+            android:pathData="M32,36H50V64H32A14,14 0,0 1,32 36Z" />
+        <path
+            android:fillColor="#FFFFFF"
+            android:strokeColor="#111214"
+            android:strokeWidth="5"
+            android:strokeLineJoin="round"
+            android:pathData="M50,36H68A14,14 0,0 1,68 64H50Z" />
+        <path
+            android:strokeColor="#FFFFFF"
+            android:strokeAlpha="0.6"
+            android:strokeWidth="3"
+            android:strokeLineCap="round"
+            android:pathData="M36,42H46" />
+    </group>
+</vector>
