@@ -1,0 +1,4 @@
+@font-face { font-family: Fredoka; src: url("../../app/src/main/res/font/fredoka.ttf"); font-weight: 300 700; }
+@font-face { font-family: Nunito; src: url("../../app/src/main/res/font/nunito.ttf"); font-weight: 200 1000; }
+:root { --ink:#111214; --blue:#2F6BFF; --deep:#1D4ED8; --soft:#DDE7FF; --red:#E01E37; --ground:#EEF3FF; --yellow:#FFD166; --light:#9DB8FF; }
+* { box-sizing: border-box; margin: 0; }

@@ -45,9 +45,9 @@ import com.example.medicat.ui.components.SectionHeading
 import com.example.medicat.ui.components.cartoon
 import com.example.medicat.ui.components.doseLine
 import com.example.medicat.ui.components.entrance
-import com.example.medicat.ui.components.medArtFor
 import com.example.medicat.ui.inventory.InventoryViewModel
 import com.example.medicat.ui.inventory.MedicationItem
+import com.example.medicat.ui.pack.packSpec
 import com.example.medicat.ui.theme.Cartoon
 import java.time.format.DateTimeFormatter
 
@@ -199,7 +199,7 @@ private fun UpcomingRow(item: MedicationItem, reminderDays: Int, onClick: () -> 
                 overflow = TextOverflow.Ellipsis
             )
         }
-        MedArt(medArtFor(item.medication.form, item.medication.category))
+        MedArt(item.packSpec().template.art)
     }
 }
 

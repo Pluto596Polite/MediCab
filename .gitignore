@@ -10,3 +10,6 @@ build/
 *.jks
 *.keystore
 keystore.properties
+
+# Personal release checklist (local only)
+TODO-PLAY-RELEASE.md

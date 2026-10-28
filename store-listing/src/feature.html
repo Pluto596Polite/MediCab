@@ -1,0 +1,57 @@
+<!doctype html><html><head><meta charset="utf-8"><link rel="stylesheet" href="fonts.css">
+<style>
+html,body{width:1024px;height:500px;overflow:hidden}
+body{background:var(--blue);position:relative;font-family:Nunito,sans-serif;color:#fff}
+.ring{position:absolute;border-radius:50%;border:60px solid #fff;opacity:.08}
+.blob{position:absolute;border-radius:50%;background:#fff;opacity:.08}
+.copy{position:absolute;left:64px;top:92px;width:470px}
+.brand{display:flex;align-items:center;gap:18px}
+h1{font-family:Fredoka;font-weight:700;font-size:96px;line-height:1;text-shadow:0 6px 0 var(--ink)}
+.tag{font-weight:900;font-size:30px;margin-top:22px}
+.chips{display:flex;flex-wrap:wrap;gap:12px;margin-top:30px}
+.chip{font-family:Fredoka;font-weight:600;font-size:21px;color:var(--ink);background:#fff;border:3.5px solid var(--ink);box-shadow:0 4px 0 var(--ink);border-radius:99px;padding:6px 18px}
+/* cabinet */
+.cab{position:absolute;left:600px;top:46px;width:330px;height:400px;background:#fff;border:7px solid var(--ink);border-radius:26px;box-shadow:0 8px 0 var(--ink)}
+.cav{position:absolute;left:14px;top:14px;right:14px;bottom:14px;background:var(--soft);border:5px solid var(--ink);border-radius:14px;overflow:hidden}
+.shelf{position:absolute;left:0;right:0;height:10px;background:var(--ink)}
+.item{position:absolute;display:flex;flex-direction:column;align-items:center}
+.foot{position:absolute;bottom:-20px;width:34px;height:18px;background:var(--ink);border-radius:0 0 8px 8px}
+.shadow{position:absolute;left:590px;top:446px;width:350px;height:30px;border-radius:50%;background:var(--deep)}
+.door{position:absolute;left:520px;top:40px;width:96px;height:412px;background:#fff;border:7px solid var(--ink);border-radius:18px;transform:perspective(900px) rotateY(-62deg);transform-origin:right center;box-shadow:0 8px 0 var(--ink)}
+.door .cross1,.door .cross2{position:absolute;background:var(--blue);border-radius:6px}
+.door .cross1{left:30px;top:170px;width:22px;height:62px}.door .cross2{left:10px;top:190px;width:62px;height:22px}
+.spark{position:absolute;font-family:Fredoka;font-weight:700;color:var(--yellow);font-size:44px;text-shadow:0 3px 0 var(--ink)}
+</style></head><body>
+<div class="ring" style="width:520px;height:520px;left:-220px;top:-230px"></div>
+<div class="blob" style="width:300px;height:300px;right:-120px;bottom:-150px"></div>
+
+<div class="copy">
+  <div class="brand">
+    <svg width="92" height="92" viewBox="-4 -4 108 112"><path d="M50 4C86 4 100 18 100 54S86 104 50 104 0 90 0 54 14 4 50 4Z" fill="#111214"/><path d="M50 0C86 0 100 14 100 50S86 100 50 100 0 86 0 50 14 0 50 0Z" fill="#fff" stroke="#111214" stroke-width="5"/><g transform="rotate(-45 50 50)"><path d="M32 36H50V64H32A14 14 0 0 1 32 36Z" fill="#E01E37" stroke="#111214" stroke-width="5" stroke-linejoin="round"/><path d="M50 36H68A14 14 0 0 1 68 64H50Z" fill="#2F6BFF" stroke="#111214" stroke-width="5" stroke-linejoin="round"/></g></svg>
+    <h1>MediCab</h1>
+  </div>
+  <div class="tag">Your medicine cabinet, sorted.</div>
+  <div class="chips"><span class="chip">Expiry reminders</span><span class="chip">Scan the label</span><span class="chip">3D shelves</span><span class="chip">Dose history</span></div>
+</div>
+
+<div class="shadow"></div>
+<div class="cab">
+  <div class="cav">
+    <div class="shelf" style="top:118px"></div><div class="shelf" style="top:238px"></div>
+    <!-- row 1: pill bottle, box, fizz tube -->
+    <div class="item" style="left:22px;top:30px"><span style="width:40px;height:16px;background:#fff;border:4px solid var(--ink);border-radius:5px"></span><span style="width:54px;height:66px;margin-top:-3px;background:var(--red);border:4px solid var(--ink);border-radius:12px;display:flex;align-items:center;justify-content:center"><span style="width:32px;height:20px;background:#fff;border-radius:4px"></span></span></div>
+    <div class="item" style="left:104px;top:22px"><span style="width:62px;height:94px;background:var(--blue);border:4px solid var(--ink);border-radius:7px;transform:rotate(-4deg);display:flex;align-items:center;justify-content:center"><span style="position:relative;width:26px;height:26px"><span style="position:absolute;left:9px;top:0;width:8px;height:26px;background:#fff;border-radius:2px"></span><span style="position:absolute;left:0;top:9px;width:26px;height:8px;background:#fff;border-radius:2px"></span></span></span></div>
+    <div class="item" style="left:200px;top:12px"><span style="width:42px;height:18px;background:var(--blue);border:4px solid var(--ink);border-radius:5px"></span><span style="width:34px;height:84px;margin-top:-3px;background:var(--yellow);border:4px solid var(--ink);border-radius:6px;display:flex;align-items:center"><span style="width:100%;height:24px;background:#fff;display:flex;align-items:center"><span style="width:100%;height:7px;background:var(--red)"></span></span></span></div>
+    <!-- row 2: syrup, tube, jar -->
+    <div class="item" style="left:20px;top:140px"><span style="width:30px;height:16px;background:var(--red);border:4px solid var(--ink);border-radius:5px"></span><span style="width:20px;height:9px;background:var(--light);border-left:4px solid var(--ink);border-right:4px solid var(--ink)"></span><span style="width:60px;height:62px;background:var(--light);border:4px solid var(--ink);border-radius:15px;display:flex;align-items:center;justify-content:center"><span style="width:36px;height:22px;background:#fff;border-radius:5px"></span></span></div>
+    <div class="item" style="left:100px;top:196px;flex-direction:row;transform:rotate(-8deg)"><span style="width:76px;height:32px;background:#fff;border:4px solid var(--ink);border-radius:5px 14px 14px 5px;display:flex;align-items:center;padding-left:8px"><span style="width:30px;height:7px;border-radius:4px;background:var(--blue)"></span></span><span style="width:16px;height:22px;background:var(--red);border:4px solid var(--ink);border-left:none;border-radius:0 4px 4px 0"></span></div>
+    <div class="item" style="left:200px;top:156px"><span style="width:66px;height:20px;background:var(--blue);border:4px solid var(--ink);border-radius:6px"></span><span style="width:58px;height:56px;background:#fff;border:4px solid var(--ink);border-top:none;border-radius:0 0 13px 13px;display:flex;align-items:center"><span style="width:100%;height:14px;background:var(--yellow)"></span></span></div>
+    <!-- row 3: blister, bottle -->
+    <div class="item" style="left:22px;top:282px"><span style="width:96px;height:62px;background:#E4E9F4;border:4px solid var(--ink);border-radius:8px;padding:7px;display:grid;grid-template-columns:repeat(3,1fr);gap:6px"><span style="border-radius:50%;background:#fff;border:3px solid var(--ink)"></span><span style="border-radius:50%;background:#fff;border:3px solid var(--ink)"></span><span style="border-radius:50%;border:3px dashed #8A9BC4"></span><span style="border-radius:50%;background:#fff;border:3px solid var(--ink)"></span><span style="border-radius:50%;background:#fff;border:3px solid var(--ink)"></span><span style="border-radius:50%;background:#fff;border:3px solid var(--ink)"></span></span></div>
+    <div class="item" style="left:160px;top:262px"><span style="width:40px;height:16px;background:#fff;border:4px solid var(--ink);border-radius:5px"></span><span style="width:54px;height:66px;margin-top:-3px;background:var(--red);border:4px solid var(--ink);border-radius:12px;display:flex;align-items:center;justify-content:center"><span style="width:32px;height:20px;background:#fff;border-radius:4px"></span></span></div>
+  </div>
+  <div class="foot" style="left:40px"></div><div class="foot" style="right:40px"></div>
+</div>
+<div class="door"><span class="cross1"></span><span class="cross2"></span></div>
+<span class="spark" style="left:950px;top:70px">✦</span><span class="spark" style="left:560px;top:22px;font-size:30px">✦</span>
+</body></html>
