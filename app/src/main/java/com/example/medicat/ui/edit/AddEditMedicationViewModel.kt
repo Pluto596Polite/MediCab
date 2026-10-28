@@ -11,6 +11,8 @@ import com.example.medicat.data.SettingsRepository
 import com.example.medicat.data.local.MedicationEntity
 import com.example.medicat.data.lookup.ProductInfo
 import com.example.medicat.data.lookup.ProductLookup
+import com.example.medicat.data.lookup.UseCaseLookup
+import com.example.medicat.domain.LabelParser
 import com.example.medicat.domain.ExpiryDates
 import com.example.medicat.domain.Gs1Parser
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -45,6 +47,8 @@ data class EditUiState(
     val isDone: Boolean = false,
     /** True while the scanned barcode is being looked up online. */
     val lookingUp: Boolean = false,
+    /** True while common uses are being looked up online. */
+    val lookingUpUses: Boolean = false,
     /** Where the auto-filled details came from, e.g. "openFDA" or "your cabinet". */
     val filledFrom: String? = null,
     /** Bumped when a scan auto-fills fields, so they can flash. */
@@ -56,12 +60,15 @@ data class EditUiState(
     val expiryError get() = showErrors && expiryDate == null
 }
 
+private const val USES_LABEL = "Common uses"
+
 @HiltViewModel
 class AddEditMedicationViewModel @Inject constructor(
     private val repository: MedicationRepository,
     private val settingsRepository: SettingsRepository,
     private val productLookup: ProductLookup,
     private val scanInbox: ScanInbox,
+    private val useCaseLookup: UseCaseLookup,
     savedStateHandle: SavedStateHandle
 ) : ViewModel() {
 
@@ -164,6 +171,7 @@ class AddEditMedicationViewModel @Inject constructor(
 
             _uiState.update { it.copy(lookingUp = true) }
             val info = productLookup.lookup(scanned.key)
+            if (info != null) findUses(listOfNotNull(LabelParser.ingredientIn(info.description), info.name), automatic = true)
             _uiState.update { state ->
                 if (info == null) {
                     state.copy(lookingUp = false, message = if (quiet) state.message else scanMessage(null, null, scanned.expiry != null))
@@ -212,9 +220,44 @@ class AddEditMedicationViewModel @Inject constructor(
         val read = if (found.isEmpty()) "Couldn't read much off the label" else "Read the ${found.joinToString(", ")} off the label"
         _uiState.update { it.copy(message = read) }
 
+        findUses(listOfNotNull(f.activeIngredient, f.name), automatic = true)
         when {
             scan.barcode != null -> onBarcodeScanned(scan.barcode, quiet = true)
             _uiState.value.expiryDate == null -> _uiState.update { it.copy(expiryPromptTick = it.expiryPromptTick + 1) }
+        }
+    }
+
+    /** The Notes field's button: look up uses for whatever the form says the medication is. */
+    fun findUsesNow() {
+        val s = _uiState.value
+        findUses(listOfNotNull(LabelParser.ingredientIn("${s.name} ${s.description}"), s.name), automatic = false)
+    }
+
+    /**
+     * Looks up what the medication is commonly used for and adds it to the notes.
+     * Automatic lookups (after a scan) respect the online-lookup setting and
+     * never replace uses that are already there; the button always runs.
+     */
+    private fun findUses(terms: List<String>, automatic: Boolean) {
+        if (terms.none { it.isNotBlank() } || _uiState.value.lookingUpUses) return
+        viewModelScope.launch {
+            if (automatic && (!settingsRepository.current().onlineLookup || USES_LABEL in _uiState.value.description)) return@launch
+            _uiState.update { it.copy(lookingUpUses = true) }
+            val info = useCaseLookup.lookup(terms)
+            _uiState.update { state ->
+                if (info == null) {
+                    state.copy(lookingUpUses = false, message = if (automatic) state.message else "Couldn't find common uses online")
+                } else {
+                    val line = "$USES_LABEL (${info.source}): ${info.text}"
+                    val kept = state.description.lines().filterNot { it.startsWith(USES_LABEL) }.joinToString("\n").trim()
+                    state.copy(
+                        lookingUpUses = false,
+                        description = if (kept.isBlank()) line else "$kept\n$line",
+                        autoFillTick = state.autoFillTick + 1,
+                        message = if (automatic) state.message else "Added common uses from ${info.source}"
+                    )
+                }
+            }
         }
     }
 

@@ -23,11 +23,17 @@ import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Snackbar
+import androidx.compose.material3.SnackbarDuration
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -84,6 +90,13 @@ fun DetailScreen(
         if (gone || (!state.isLoading && state.medication == null)) onBack()
     }
     LightStatusBarIcons()
+    val loggedDose by viewModel.loggedDose.collectAsStateWithLifecycle()
+    val snackbar = remember { SnackbarHostState() }
+    LaunchedEffect(loggedDose) {
+        if (loggedDose == null) return@LaunchedEffect
+        val result = snackbar.showSnackbar("Dose logged", actionLabel = "Undo", duration = SnackbarDuration.Short)
+        if (result == SnackbarResult.ActionPerformed) viewModel.undoDose() else viewModel.doseNoticeShown()
+    }
 
     val med = state.medication ?: run {
         Box(Modifier.fillMaxSize().background(Cartoon.Ground))
@@ -113,7 +126,7 @@ fun DetailScreen(
                     Fact("Expires", ExpiryDates.format(med.expiryDate), Modifier.weight(1f))
                     Fact("Kept in", med.location.ifBlank { "Not set" }, Modifier.weight(1f))
                 }
-                StockCard(med, onLess = viewModel::logDose, onMore = viewModel::addOne)
+                StockCard(med, onLess = viewModel::oneLess, onMore = viewModel::addOne)
                 ReminderCard(
                     remind = med.remind,
                     reminderDays = state.reminderDays,
@@ -154,13 +167,26 @@ fun DetailScreen(
                 !med.isActive -> CartoonButton(
                     "Back in cabinet", { viewModel.setActive(true) }, Modifier.weight(1f), icon = InkIcons.Undo
                 )
-                med.quantity == 0 || med.remaining == 0 -> CartoonButton(
+                med.quantity > 0 && med.remaining == 0 -> CartoonButton(
                     "Mark used up", { viewModel.setActive(false) }, Modifier.weight(1f), color = Cartoon.Red
                 )
                 else -> CartoonButton(
                     "Log a dose", viewModel::logDose, Modifier.weight(1f)
                 )
             }
+        }
+        SnackbarHost(
+            snackbar,
+            modifier = Modifier.align(Alignment.BottomCenter).navigationBarsPadding().padding(bottom = 96.dp)
+        ) { data ->
+            Snackbar(
+                data,
+                shape = RoundedCornerShape(16.dp),
+                containerColor = Cartoon.Ink,
+                contentColor = Color.White,
+                actionColor = Cartoon.Yellow,
+                modifier = Modifier.padding(horizontal = 16.dp)
+            )
         }
     }
 

@@ -6,6 +6,7 @@ import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.preferencesDataStore
 import androidx.room.Room
 import com.example.medicat.data.local.MediCabDatabase
+import com.example.medicat.data.local.DoseDao
 import com.example.medicat.data.local.MedicationDao
 import dagger.Module
 import dagger.Provides
@@ -27,6 +28,9 @@ object AppModule {
 
     @Provides
     fun provideMedicationDao(database: MediCabDatabase): MedicationDao = database.medicationDao()
+
+    @Provides
+    fun provideDoseDao(database: MediCabDatabase): DoseDao = database.doseDao()
 
     @Provides
     @Singleton

@@ -49,26 +49,26 @@ class ProductLookup @Inject constructor() {
         return "https://api.fda.gov/drug/label.json?search=$query&limit=1"
     }
 
-    private fun getJson(url: String): JSONObject? {
-        val connection = (URL(url).openConnection() as HttpURLConnection).apply {
-            connectTimeout = TIMEOUT_MS
-            readTimeout = TIMEOUT_MS
-            setRequestProperty("User-Agent", USER_AGENT)
-            setRequestProperty("Accept", "application/json")
-        }
-        return try {
-            if (connection.responseCode != HttpURLConnection.HTTP_OK) null
-            else JSONObject(connection.inputStream.bufferedReader().use { it.readText() })
-        } catch (_: Exception) {
-            null
-        } finally {
-            connection.disconnect()
-        }
-    }
+}
 
-    private companion object {
-        const val TIMEOUT_MS = 7_000
-        const val USER_AGENT = "MediCab/1.0 (Android medicine cabinet app)"
+private const val TIMEOUT_MS = 7_000
+private const val USER_AGENT = "MediCab/1.0 (Android medicine cabinet app)"
+
+/** GET [url] and parse the body as JSON; null on any network or parse failure. */
+internal fun getJson(url: String): JSONObject? {
+    val connection = (URL(url).openConnection() as HttpURLConnection).apply {
+        connectTimeout = TIMEOUT_MS
+        readTimeout = TIMEOUT_MS
+        setRequestProperty("User-Agent", USER_AGENT)
+        setRequestProperty("Accept", "application/json")
+    }
+    return try {
+        if (connection.responseCode != HttpURLConnection.HTTP_OK) null
+        else JSONObject(connection.inputStream.bufferedReader().use { it.readText() })
+    } catch (_: Exception) {
+        null
+    } finally {
+        connection.disconnect()
     }
 }
 

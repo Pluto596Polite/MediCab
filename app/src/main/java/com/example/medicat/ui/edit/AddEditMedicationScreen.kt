@@ -247,7 +247,18 @@ fun AddEditMedicationScreen(
                 ChipGroup("Kept in", StorageLocations, state.location, viewModel::onLocationChange)
 
                 Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                    FieldLabel("Notes")
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        FieldLabel("Notes", Modifier.weight(1f))
+                        if (state.lookingUpUses) {
+                            CircularProgressIndicator(Modifier.size(18.dp), color = Cartoon.Blue, strokeWidth = 2.5.dp)
+                            Text(" Finding uses…", style = MaterialTheme.typography.labelMedium, color = Cartoon.InkMuted)
+                        } else if (state.name.isNotBlank()) {
+                            TextButton(onClick = viewModel::findUsesNow) {
+                                Icon(InkIcons.Globe, null, tint = Cartoon.Blue, modifier = Modifier.size(16.dp))
+                                Text(" Find common uses", style = MaterialTheme.typography.labelMedium, color = Cartoon.Blue)
+                            }
+                        }
+                    }
                     CartoonTextField(
                         value = state.description,
                         onValueChange = viewModel::onDescriptionChange,
@@ -257,6 +268,13 @@ fun AddEditMedicationScreen(
                         fill = flash,
                         keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Sentences)
                     )
+                    if ("Common uses" in state.description) {
+                        Text(
+                            "Common uses come from public sources and are general information. Always follow the pack leaflet and your pharmacist or doctor.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = Cartoon.InkMuted
+                        )
+                    }
                 }
 
                 Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {

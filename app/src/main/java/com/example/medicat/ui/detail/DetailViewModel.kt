@@ -3,6 +3,7 @@ package com.example.medicat.ui.detail
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.medicat.data.DoseRepository
 import com.example.medicat.data.MedicationRepository
 import com.example.medicat.data.Settings
 import com.example.medicat.data.SettingsRepository
@@ -31,6 +32,7 @@ data class DetailUiState(
 @HiltViewModel
 class DetailViewModel @Inject constructor(
     private val repository: MedicationRepository,
+    private val doses: DoseRepository,
     settingsRepository: SettingsRepository,
     savedStateHandle: SavedStateHandle
 ) : ViewModel() {
@@ -60,8 +62,36 @@ class DetailViewModel @Inject constructor(
         viewModelScope.launch { repository.save(transform(med)) }
     }
 
-    /** Takes one dose out of the pack. */
-    fun logDose() = update { it.copy(remaining = (it.remaining - 1).coerceAtLeast(0)) }
+    private val _loggedDose = MutableStateFlow<Long?>(null)
+    /** Id of the dose just logged, while its "Undo" is on offer. */
+    val loggedDose: StateFlow<Long?> = _loggedDose.asStateFlow()
+
+    /** Records a dose in the history and, when stock is counted, takes one out of the pack. */
+    fun logDose() {
+        val med = uiState.value.medication ?: return
+        viewModelScope.launch {
+            if (med.quantity > 0 && med.remaining > 0) repository.save(med.copy(remaining = med.remaining - 1))
+            _loggedDose.value = doses.log(med)
+        }
+    }
+
+    /** Takes back the dose just logged, and puts it back in the pack. */
+    fun undoDose() {
+        val id = _loggedDose.value ?: return
+        _loggedDose.value = null
+        viewModelScope.launch {
+            doses.delete(id)
+            val med = uiState.value.medication ?: return@launch
+            if (med.quantity > 0) repository.save(med.copy(remaining = (med.remaining + 1).coerceAtMost(med.quantity)))
+        }
+    }
+
+    fun doseNoticeShown() {
+        _loggedDose.value = null
+    }
+
+    /** Stock correction without logging a dose. */
+    fun oneLess() = update { it.copy(remaining = (it.remaining - 1).coerceAtLeast(0)) }
 
     fun addOne() = update {
         val cap = if (it.quantity > 0) it.quantity else Int.MAX_VALUE

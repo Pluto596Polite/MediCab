@@ -44,6 +44,7 @@ import com.example.medicat.ui.gallery.VirtualCabinetScreen
 import com.example.medicat.ui.inventory.HomeTab
 import com.example.medicat.ui.inventory.InventoryScreen
 import com.example.medicat.ui.scan.ScannerScreen
+import com.example.medicat.ui.profile.ProfileScreen
 import com.example.medicat.ui.settings.SettingsScreen
 import com.example.medicat.ui.splash.SplashOverlay
 import com.example.medicat.ui.splash.SplashRevealAt
@@ -55,6 +56,7 @@ private object Routes {
     const val EDIT = "edit?id={id}&code={code}"
     const val SCAN = "scan?standalone={standalone}"
     const val SETTINGS = "settings"
+    const val PROFILE = "profile"
     const val ALERTS = "alerts"
     const val CABINET = "cabinet"
     const val GALLERY = "gallery?focus={focus}"
@@ -149,7 +151,7 @@ private fun AppNavHost(navController: NavHostController) {
                         HomeTab.SHELF -> navController.navigate(Routes.CABINET)
                         HomeTab.SCAN -> navController.navigate(Routes.scan(standalone = true))
                         HomeTab.ALERTS -> navController.navigate(Routes.ALERTS)
-                        HomeTab.SETTINGS -> navController.navigate(Routes.SETTINGS)
+                        HomeTab.PROFILE -> navController.navigate(Routes.PROFILE)
                     }
                 }
             )
@@ -230,6 +232,12 @@ private fun AppNavHost(navController: NavHostController) {
                 onLabelDone = { if (standalone) openForm(null) else navController.popBackStack() },
                 onBack = { navController.popBackStack() },
                 onTypeIn = { if (standalone) openForm(null) else navController.popBackStack() }
+            )
+        }
+        composable(Routes.PROFILE) {
+            ProfileScreen(
+                onBack = { navController.popBackStack() },
+                onOpenSettings = { navController.navigate(Routes.SETTINGS) }
             )
         }
         composable(Routes.SETTINGS) {

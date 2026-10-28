@@ -46,6 +46,8 @@ data class InventoryUiState(
     val active: List<MedicationItem> = emptyList(),
     val query: String = "",
     val reminderDays: Int = 30,
+    /** For the greeting; blank when the user hasn't set it. */
+    val profileName: String = "",
     val isLoading: Boolean = true,
     val isEmpty: Boolean = false
 )
@@ -94,6 +96,7 @@ class InventoryViewModel @Inject constructor(
             active = activeItems,
             query = query,
             reminderDays = settings.reminderDays,
+            profileName = settings.profileName,
             isLoading = false,
             isEmpty = medications.isEmpty()
         )

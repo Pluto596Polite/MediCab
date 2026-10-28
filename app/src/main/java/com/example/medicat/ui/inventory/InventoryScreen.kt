@@ -84,7 +84,7 @@ import com.example.medicat.ui.theme.tone
 import java.time.LocalTime
 
 /** Destinations reachable from the floating bottom bar. */
-enum class HomeTab { CABINET, SHELF, SCAN, ALERTS, SETTINGS }
+enum class HomeTab { CABINET, SHELF, SCAN, ALERTS, PROFILE }
 
 @Composable
 fun InventoryScreen(
@@ -103,7 +103,7 @@ fun InventoryScreen(
         when {
             state.isLoading -> Unit
             state.isEmpty -> Column(Modifier.fillMaxSize()) {
-                Header(attention = 0, searching = false, onToggleSearch = null, onAlerts = { onNavigate(HomeTab.ALERTS) })
+                Header(state.profileName, attention = 0, searching = false, onToggleSearch = null, onAlerts = { onNavigate(HomeTab.ALERTS) })
                 EmptyCabinet(
                     onScan = { onNavigate(HomeTab.SCAN) },
                     onAdd = onAddMedication,
@@ -120,6 +120,7 @@ fun InventoryScreen(
                 item(key = "header", span = { GridItemSpan(maxLineSpan) }) {
                     Column {
                         Header(
+                            name = state.profileName,
                             attention = attention,
                             searching = searching,
                             onToggleSearch = {
@@ -180,6 +181,7 @@ fun InventoryScreen(
 
 @Composable
 private fun Header(
+    name: String,
     attention: Int,
     searching: Boolean,
     onToggleSearch: (() -> Unit)?,
@@ -201,7 +203,12 @@ private fun Header(
     ) {
         MediCabLogo(size = 52.dp)
         Column(Modifier.weight(1f)) {
-            Text(greeting, style = MaterialTheme.typography.bodyMedium, color = Cartoon.InkMuted)
+            Text(
+                if (name.isBlank()) greeting else "$greeting, ${name.substringBefore(' ')}",
+                style = MaterialTheme.typography.bodyMedium,
+                color = Cartoon.InkMuted,
+                maxLines = 1
+            )
             Text("My Cabinet", style = MaterialTheme.typography.headlineLarge, color = Cartoon.Ink, maxLines = 1)
         }
         if (onToggleSearch != null) {
@@ -400,7 +407,7 @@ private fun BottomBar(onNavigate: (HomeTab) -> Unit, modifier: Modifier = Modifi
         NavItem(InkIcons.Shelves, "Shelf view", selected = false) { onNavigate(HomeTab.SHELF) }
         Box(Modifier.size(66.dp))
         NavItem(InkIcons.Bell, "Alerts", selected = false) { onNavigate(HomeTab.ALERTS) }
-        NavItem(InkIcons.Profile, "Settings", selected = false) { onNavigate(HomeTab.SETTINGS) }
+        NavItem(InkIcons.Profile, "Profile", selected = false) { onNavigate(HomeTab.PROFILE) }
     }
     // The scan button floats half above the bar, so it's drawn outside the row's clip.
     Box(modifier.height(72.dp).fillMaxWidth(), contentAlignment = Alignment.TopCenter) {

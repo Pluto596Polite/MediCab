@@ -5,6 +5,7 @@ import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.intPreferencesKey
+import androidx.datastore.preferences.core.stringPreferencesKey
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
@@ -16,8 +17,10 @@ data class Settings(
     val reminderDays: Int = DEFAULT_REMINDER_DAYS,
     val notificationsEnabled: Boolean = true,
     val reminderTime: LocalTime = DEFAULT_REMINDER_TIME,
-    /** Look scanned barcodes up in public product databases. */
-    val onlineLookup: Boolean = true
+    /** Look scanned barcodes and medication uses up in public databases. */
+    val onlineLookup: Boolean = true,
+    /** The user's name for greetings; blank until they set it. */
+    val profileName: String = ""
 ) {
     companion object {
         const val DEFAULT_REMINDER_DAYS = 30
@@ -39,7 +42,8 @@ class SettingsRepository @Inject constructor(
                 prefs[REMINDER_HOUR] ?: Settings.DEFAULT_REMINDER_TIME.hour,
                 prefs[REMINDER_MINUTE] ?: Settings.DEFAULT_REMINDER_TIME.minute
             ),
-            onlineLookup = prefs[ONLINE_LOOKUP] ?: true
+            onlineLookup = prefs[ONLINE_LOOKUP] ?: true,
+            profileName = prefs[PROFILE_NAME].orEmpty()
         )
     }
 
@@ -57,6 +61,10 @@ class SettingsRepository @Inject constructor(
         dataStore.edit { it[ONLINE_LOOKUP] = enabled }
     }
 
+    suspend fun setProfileName(name: String) {
+        dataStore.edit { it[PROFILE_NAME] = name.trim().take(40) }
+    }
+
     suspend fun setReminderTime(time: LocalTime) {
         dataStore.edit {
             it[REMINDER_HOUR] = time.hour
@@ -70,5 +78,6 @@ class SettingsRepository @Inject constructor(
         val REMINDER_HOUR = intPreferencesKey("reminder_hour")
         val REMINDER_MINUTE = intPreferencesKey("reminder_minute")
         val ONLINE_LOOKUP = booleanPreferencesKey("online_lookup")
+        val PROFILE_NAME = stringPreferencesKey("profile_name")
     }
 }

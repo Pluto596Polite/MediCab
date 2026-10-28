@@ -157,6 +157,12 @@ object LabelParser {
         )
     }
 
+    /** The best-known active ingredient mentioned in [text], title-cased, if any. */
+    fun ingredientIn(text: String): String? = ingredients.keys
+        .filter { Regex("""\b${Regex.escape(it)}\b""", RegexOption.IGNORE_CASE).containsMatchIn(text) }
+        .maxByOrNull { it.length }
+        ?.let(::titleCase)
+
     /** The biggest line of text that looks like a name rather than small print. */
     private fun prominentLine(lines: List<OcrLine>): String? = lines
         .filter { line ->

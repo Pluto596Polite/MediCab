@@ -253,8 +253,8 @@ fun SettingsScreen(onBack: () -> Unit, viewModel: SettingsViewModel = hiltViewMo
                 SettingRow(
                     icon = InkIcons.Globe,
                     tint = Cartoon.BlueSoft,
-                    title = "Look up scanned products",
-                    subtitle = "Only the barcode number is sent to Open Products Facts, openFDA and UPCitemdb"
+                    title = "Look things up online",
+                    subtitle = "Fills in scanned products and their common uses. Only the barcode number or medication name is sent to Open Products Facts, openFDA, UPCitemdb and Wikipedia."
                 ) {
                     CartoonSwitch(settings.onlineLookup, viewModel::setOnlineLookup)
                 }

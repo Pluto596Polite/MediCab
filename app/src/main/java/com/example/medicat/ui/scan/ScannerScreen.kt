@@ -235,8 +235,9 @@ private fun CameraScanner(
         onDispose {
             controller.clearImageAnalysisAnalyzer()
             textBoxes = emptyList()
-            barcodes.close()
-            text?.close()
+            // Closing a detector should never take the app down with it.
+            runCatching { barcodes.close() }
+            runCatching { text?.close() }
         }
     }
 
