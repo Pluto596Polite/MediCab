@@ -1,9 +1,9 @@
 package com.example.medicat.data.local
-
+ 
 import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.PrimaryKey
-
+ 
 /**
  * Represents a medication entry in the local database.
  */
@@ -30,7 +30,7 @@ data class MedicationEntity(
     /** How many are left in the pack. */
     @ColumnInfo(defaultValue = "0")
     val remaining: Int = 0,
-    /** Where it's kept, e.g. "Bathroom". */
+    /** Where it's kept, e.g. \"Bathroom\". */
     @ColumnInfo(defaultValue = "")
     val location: String = "",
     /** Whether this item is included in expiry reminders. */
