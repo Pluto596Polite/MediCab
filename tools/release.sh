@@ -27,7 +27,7 @@ if [ -z "${JAVA_HOME:-}" ] && [ -d "$HOME/Library/Java/JavaVirtualMachines/temur
     export JAVA_HOME="$HOME/Library/Java/JavaVirtualMachines/temurin-21.0.12/Contents/Home"
 fi
 
-echo "Testing and building MediCab $version…"
+echo "Testing and building MediCab ${version}..."
 ./gradlew --quiet :app:testDebugUnitTest :app:assembleRelease
 
 # One APK per processor type (the in-app updater picks the right one) plus a universal one.
