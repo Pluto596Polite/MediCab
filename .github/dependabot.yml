@@ -1,0 +1,26 @@
+# Weekly pull requests for newer libraries and GitHub Actions; CI tests each one.
+version: 2
+updates:
+  - package-ecosystem: gradle
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: "06:00"
+      timezone: Africa/Johannesburg
+    open-pull-requests-limit: 5
+    groups:
+      # One pull request for all minor and patch updates; major versions come separately.
+      minor-and-patch:
+        update-types: [minor, patch]
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: "06:00"
+      timezone: Africa/Johannesburg
+    groups:
+      actions:
+        patterns: ["*"]

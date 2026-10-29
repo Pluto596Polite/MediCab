@@ -1,5 +1,7 @@
 # MediCab
 
+[![CI](https://github.com/Pluto596Polite/MediCab/actions/workflows/ci.yml/badge.svg)](https://github.com/Pluto596Polite/MediCab/actions/workflows/ci.yml)
+
 A friendly medicine cabinet for Android. Keep track of what's in your cabinet,
 get reminded before things expire, and log doses.
 
