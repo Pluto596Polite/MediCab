@@ -36,6 +36,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
@@ -68,6 +69,7 @@ import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.PathEffect
+import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.semantics.Role
@@ -76,9 +78,12 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.example.medicat.data.lookup.SaMedicine
+import com.example.medicat.data.lookup.UsesNote
 import com.example.medicat.domain.ExpiryDates
 import com.example.medicat.domain.ExpiryStatus
 import com.example.medicat.ui.components.CartoonButton
@@ -98,6 +103,7 @@ import com.example.medicat.ui.components.StorageLocations
 import com.example.medicat.ui.components.autoFillFlash
 import com.example.medicat.ui.components.cartoon
 import com.example.medicat.ui.components.medArtFor
+import com.example.medicat.ui.components.stockUnit
 import com.example.medicat.ui.pack.Pack3D
 import com.example.medicat.ui.pack.PackSpec
 import com.example.medicat.ui.pack.PackTemplate
@@ -191,6 +197,10 @@ fun AddEditMedicationScreen(
                             isError = state.nameError,
                             fill = flash,
                             keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Words, imeAction = ImeAction.Next),
+                            keyboardActions = KeyboardActions(onNext = {
+                                viewModel.dismissSuggestions()
+                                defaultKeyboardAction(ImeAction.Next)
+                            }),
                             modifier = shake.fillMaxWidth(),
                             trailing = if (state.lookingUp) {
                                 {
@@ -204,6 +214,7 @@ fun AddEditMedicationScreen(
                         )
                     }
                     if (state.nameError) FieldError("Give it a name")
+                    MedicineSuggestions(state.suggestions, viewModel::onSuggestionPicked)
                 }
 
                 Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -268,7 +279,7 @@ fun AddEditMedicationScreen(
                         fill = flash,
                         keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Sentences)
                     )
-                    if ("Common uses" in state.description) {
+                    if (UsesNote.LABEL in state.description) {
                         Text(
                             "Common uses come from public sources and are general information. Always follow the pack leaflet and your pharmacist or doctor.",
                             style = MaterialTheme.typography.bodySmall,
@@ -464,6 +475,66 @@ private fun SnapCard(
     }
 }
 
+/** Matches from the SA medicine list under the name field; tapping one fills the form. */
+@Composable
+private fun MedicineSuggestions(suggestions: List<SaMedicine>, onPick: (SaMedicine) -> Unit) {
+    AnimatedVisibility(
+        visible = suggestions.isNotEmpty(),
+        enter = fadeIn() + expandVertically(),
+        exit = fadeOut() + shrinkVertically()
+    ) {
+        // Keep showing the last matches while the list animates away.
+        var shown by remember { mutableStateOf(suggestions) }
+        if (suggestions.isNotEmpty()) shown = suggestions
+        Column(
+            Modifier
+                .padding(top = 4.dp)
+                .fillMaxWidth()
+                .cartoon(Cartoon.Paper, RoundedCornerShape(16.dp), shadow = 3.dp)
+                .padding(vertical = 4.dp)
+        ) {
+            Text(
+                "From the SA medicine list",
+                style = MaterialTheme.typography.labelMedium,
+                color = Cartoon.InkMuted,
+                modifier = Modifier.padding(horizontal = 14.dp, vertical = 6.dp)
+            )
+            shown.forEach { med ->
+                Column(
+                    Modifier
+                        .fillMaxWidth()
+                        .clickable(role = Role.Button, onClickLabel = "Fill in ${med.name}") { onPick(med) }
+                        .padding(horizontal = 14.dp, vertical = 8.dp)
+                ) {
+                    Text(med.name, style = MaterialTheme.typography.titleSmall, color = Cartoon.Ink, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    Text(
+                        med.detailLine(),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = Cartoon.InkMuted,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
+            }
+        }
+    }
+}
+
+/** "500 mg · 24 tablets · Paracetamol", with "no longer made" for discontinued packs. */
+private fun SaMedicine.detailLine(): String {
+    val pack = when {
+        packSize <= 0 -> null
+        form.isBlank() -> "pack of $packSize"
+        else -> "$packSize ${stockUnit(form, packSize)}"
+    }
+    return listOfNotNull(
+        strength.takeIf { it.isNotBlank() && " + " !in it },
+        pack,
+        ingredients.takeIf { it.isNotBlank() },
+        "no longer made".takeIf { discontinued }
+    ).joinToString(" · ")
+}
+
 @Composable
 private fun QuantityStepper(value: Int, onChange: (Int) -> Unit) {
     Row(
@@ -474,12 +545,33 @@ private fun QuantityStepper(value: Int, onChange: (Int) -> Unit) {
         verticalAlignment = Alignment.CenterVertically
     ) {
         StepperButton(InkIcons.Minus, "One less") { onChange(value - 1) }
-        Text(
-            if (value == 0) "–" else value.toString(),
-            style = MaterialTheme.typography.titleLarge,
-            color = Cartoon.Ink,
-            modifier = Modifier.width(40.dp),
-            textAlign = androidx.compose.ui.text.style.TextAlign.Center
+        // Typed counts ("24") and the buttons share one value; blank means not tracked.
+        var text by remember { mutableStateOf(if (value == 0) "" else value.toString()) }
+        LaunchedEffect(value) {
+            if ((text.toIntOrNull() ?: 0) != value) text = if (value == 0) "" else value.toString()
+        }
+        BasicTextField(
+            value = text,
+            onValueChange = { typed ->
+                text = typed.filter(Char::isDigit).take(3)
+                onChange(text.toIntOrNull() ?: 0)
+            },
+            singleLine = true,
+            textStyle = MaterialTheme.typography.titleLarge.copy(
+                color = Cartoon.Ink,
+                textAlign = androidx.compose.ui.text.style.TextAlign.Center
+            ),
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number, imeAction = ImeAction.Done),
+            cursorBrush = SolidColor(Cartoon.Ink),
+            modifier = Modifier.width(52.dp).semantics { contentDescription = "Pack size" },
+            decorationBox = { field ->
+                Box(contentAlignment = Alignment.Center) {
+                    if (text.isEmpty()) {
+                        Text("–", style = MaterialTheme.typography.titleLarge, color = Cartoon.Placeholder)
+                    }
+                    field()
+                }
+            }
         )
         StepperButton(InkIcons.Plus, "One more") { onChange(value + 1) }
     }

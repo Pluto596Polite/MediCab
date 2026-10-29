@@ -34,6 +34,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
@@ -146,6 +147,8 @@ private fun SmallLink(text: String, icon: androidx.compose.ui.graphics.vector.Im
 fun TemplatePicker(onChoose: (PackTemplate) -> Unit, selected: PackTemplate? = null, sidePadding: Dp = 20.dp) {
     // Open with the current choice in view.
     val listState = rememberLazyListState(initialFirstVisibleItemIndex = ((selected?.ordinal ?: 0) - 1).coerceAtLeast(0))
+    // And keep it in view when it's chosen for the user, e.g. by picking a listed medicine.
+    LaunchedEffect(selected) { selected?.let { listState.animateScrollToItem((it.ordinal - 1).coerceAtLeast(0)) } }
     LazyRow(
         state = listState,
         contentPadding = PaddingValues(start = sidePadding, end = sidePadding, bottom = 4.dp),

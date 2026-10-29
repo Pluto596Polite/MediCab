@@ -11,11 +11,18 @@ import com.example.medicat.data.SettingsRepository
 import com.example.medicat.data.local.MedicationEntity
 import com.example.medicat.data.lookup.ProductInfo
 import com.example.medicat.data.lookup.ProductLookup
+import com.example.medicat.data.lookup.SA_MEDICINES_SOURCE
+import com.example.medicat.data.lookup.SaMedicine
+import com.example.medicat.data.lookup.SaMedicines
 import com.example.medicat.data.lookup.UseCaseLookup
+import com.example.medicat.data.lookup.UsesNote
 import com.example.medicat.domain.LabelParser
 import com.example.medicat.domain.ExpiryDates
 import com.example.medicat.domain.Gs1Parser
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -54,13 +61,13 @@ data class EditUiState(
     /** Bumped when a scan auto-fills fields, so they can flash. */
     val autoFillTick: Int = 0,
     /** Bumped when the UI should open the expiry picker by itself. */
-    val expiryPromptTick: Int = 0
+    val expiryPromptTick: Int = 0,
+    /** Listed SA medicines matching what's being typed as the name. */
+    val suggestions: List<SaMedicine> = emptyList()
 ) {
     val nameError get() = showErrors && name.isBlank()
     val expiryError get() = showErrors && expiryDate == null
 }
-
-private const val USES_LABEL = "Common uses"
 
 @HiltViewModel
 class AddEditMedicationViewModel @Inject constructor(
@@ -69,16 +76,20 @@ class AddEditMedicationViewModel @Inject constructor(
     private val productLookup: ProductLookup,
     private val scanInbox: ScanInbox,
     private val useCaseLookup: UseCaseLookup,
+    private val saMedicines: SaMedicines,
     savedStateHandle: SavedStateHandle
 ) : ViewModel() {
 
     private val medicationId: Int = savedStateHandle.get<Int>("id") ?: -1
     private var original: MedicationEntity? = null
+    private var searchJob: Job? = null
 
     private val _uiState = MutableStateFlow(EditUiState(isEditing = medicationId > 0, isLoading = medicationId > 0))
     val uiState: StateFlow<EditUiState> = _uiState.asStateFlow()
 
     init {
+        // Load the medicine list now so the first suggestions don't wait for it.
+        viewModelScope.launch { saMedicines.catalogue() }
         viewModelScope.launch {
             settingsRepository.settings.collect { settings ->
                 _uiState.update { it.copy(reminderDays = settings.reminderDays) }
@@ -117,7 +128,45 @@ class AddEditMedicationViewModel @Inject constructor(
         }
     }
 
-    fun onNameChange(value: String) = _uiState.update { it.copy(name = value) }
+    /** Typing a name suggests matching medicines from the bundled SA list. */
+    fun onNameChange(value: String) {
+        _uiState.update { it.copy(name = value) }
+        searchJob?.cancel()
+        searchJob = viewModelScope.launch(Dispatchers.Default) {
+            val found = saMedicines.catalogue().search(value)
+            ensureActive()
+            _uiState.update { if (it.name == value) it.copy(suggestions = found) else it }
+        }
+    }
+
+    fun dismissSuggestions() {
+        searchJob?.cancel()
+        _uiState.update { it.copy(suggestions = emptyList()) }
+    }
+
+    /** Picking a listed medicine fills in everything the list knows about it. */
+    fun onSuggestionPicked(med: SaMedicine) {
+        searchJob?.cancel()
+        _uiState.update { state ->
+            state.copy(
+                name = med.name,
+                strength = med.strength.ifBlank { state.strength },
+                form = med.form.ifBlank { state.form },
+                quantity = med.packSize.takeIf { it > 0 } ?: state.quantity,
+                category = med.category.ifBlank { state.category },
+                description = state.description.ifBlank { containsNote(med) },
+                // Its usual packaging, e.g. a pill box for Allergex tablets; blank goes back to the guess.
+                pack = med.template,
+                suggestions = emptyList(),
+                filledFrom = SA_MEDICINES_SOURCE,
+                autoFillTick = state.autoFillTick + 1,
+                expiryPromptTick = if (state.expiryDate == null) state.expiryPromptTick + 1 else state.expiryPromptTick
+            )
+        }
+        findUses(listOf(med.ingredients.substringBefore(" + "), med.name), automatic = true)
+    }
+
+    private fun containsNote(med: SaMedicine) = med.ingredients.takeIf { it.isNotBlank() }?.let { "Contains $it" }.orEmpty()
     fun onCategoryChange(value: String) = _uiState.update { it.copy(category = value) }
     fun onDescriptionChange(value: String) = _uiState.update { it.copy(description = value) }
     fun onExpiryChange(value: Long?) = _uiState.update { it.copy(expiryDate = value) }
@@ -194,33 +243,41 @@ class AddEditMedicationViewModel @Inject constructor(
 
     /**
      * Fills the form from a label scan: what was read off the pack fills empty
-     * fields, the pack type picks the 3D template, and a barcode seen on the way gets
-     * the usual cabinet/online lookup for anything still missing.
+     * fields, the matching pack in the SA medicine list fills what the label didn't
+     * show (ingredients, category, the full name), the pack type picks the 3D
+     * template, and a barcode seen on the way gets the usual cabinet/online lookup.
      */
-    fun onLabelScanned(scan: LabelScan) {
+    fun onLabelScanned(scan: LabelScan) = viewModelScope.launch {
         val f = scan.fields
-        val notes = listOfNotNull(f.activeIngredient?.let { "Contains $it" }, f.batch?.let { "Batch $it" })
+        val listed = saMedicines.catalogue().bestMatch(f)
+        val ingredient = listed?.ingredients?.takeIf { it.isNotBlank() } ?: f.activeIngredient
+        val notes = listOfNotNull(ingredient?.let { "Contains $it" }, f.batch?.let { "Batch $it" })
         _uiState.update { state ->
             state.copy(
-                name = state.name.ifBlank { f.name.orEmpty() },
-                strength = state.strength.ifBlank { f.strength.orEmpty() },
-                quantity = if (state.quantity == 0) f.quantity ?: 0 else state.quantity,
-                form = state.form.ifBlank { f.form.orEmpty() },
-                category = state.category.ifBlank { f.category.orEmpty() },
+                name = state.name.ifBlank { listed?.name ?: f.name.orEmpty() },
+                strength = state.strength.ifBlank { f.strength ?: listed?.strength.orEmpty() },
+                quantity = if (state.quantity == 0) f.quantity ?: listed?.packSize ?: 0 else state.quantity,
+                form = state.form.ifBlank { f.form ?: listed?.form.orEmpty() },
+                category = state.category.ifBlank { listed?.category?.ifBlank { null } ?: f.category.orEmpty() },
                 expiryDate = state.expiryDate ?: f.expiry?.let(ExpiryDates::toMillis),
                 description = state.description.ifBlank { notes.joinNotes() },
-                pack = scan.template ?: state.pack,
-                filledFrom = "the label",
+                pack = scan.template ?: listed?.template?.ifBlank { null } ?: state.pack,
+                suggestions = emptyList(),
+                filledFrom = if (listed != null) "the label and $SA_MEDICINES_SOURCE" else "the label",
                 autoFillTick = state.autoFillTick + 1
             )
         }
         val found = listOfNotNull(
             f.name?.let { "name" }, f.strength?.let { "strength" }, f.quantity?.let { "pack size" }, f.expiry?.let { "expiry" }
         )
-        val read = if (found.isEmpty()) "Couldn't read much off the label" else "Read the ${found.joinToString(", ")} off the label"
+        val read = when {
+            listed != null -> "Matched ${listed.name} in $SA_MEDICINES_SOURCE"
+            found.isEmpty() -> "Couldn't read much off the label"
+            else -> "Read the ${found.joinToString(", ")} off the label"
+        }
         _uiState.update { it.copy(message = read) }
 
-        findUses(listOfNotNull(f.activeIngredient, f.name), automatic = true)
+        findUses(listOfNotNull(ingredient?.substringBefore(" + "), f.name), automatic = true)
         when {
             scan.barcode != null -> onBarcodeScanned(scan.barcode, quiet = true)
             _uiState.value.expiryDate == null -> _uiState.update { it.copy(expiryPromptTick = it.expiryPromptTick + 1) }
@@ -241,18 +298,18 @@ class AddEditMedicationViewModel @Inject constructor(
     private fun findUses(terms: List<String>, automatic: Boolean) {
         if (terms.none { it.isNotBlank() } || _uiState.value.lookingUpUses) return
         viewModelScope.launch {
-            if (automatic && (!settingsRepository.current().onlineLookup || USES_LABEL in _uiState.value.description)) return@launch
+            if (automatic && (!settingsRepository.current().onlineLookup || UsesNote.LABEL in _uiState.value.description)) return@launch
             _uiState.update { it.copy(lookingUpUses = true) }
             val info = useCaseLookup.lookup(terms)
             _uiState.update { state ->
                 if (info == null) {
                     state.copy(lookingUpUses = false, message = if (automatic) state.message else "Couldn't find common uses online")
                 } else {
-                    val line = "$USES_LABEL (${info.source}): ${info.text}"
-                    val kept = state.description.lines().filterNot { it.startsWith(USES_LABEL) }.joinToString("\n").trim()
+                    val block = UsesNote.format(info)
+                    val kept = UsesNote.remove(state.description)
                     state.copy(
                         lookingUpUses = false,
-                        description = if (kept.isBlank()) line else "$kept\n$line",
+                        description = if (kept.isBlank()) block else "$kept\n$block",
                         autoFillTick = state.autoFillTick + 1,
                         message = if (automatic) state.message else "Added common uses from ${info.source}"
                     )

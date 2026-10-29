@@ -261,6 +261,14 @@ fun SettingsScreen(onBack: () -> Unit, viewModel: SettingsViewModel = hiltViewMo
             }
             SettingCard {
                 SettingRow(
+                    icon = InkIcons.Search,
+                    tint = Cartoon.PinkSoft,
+                    title = "SA medicine list built in",
+                    subtitle = "Name suggestions, label matches and pack shapes come from the Department of Health's database of registered medicines, plus a few popular unregistered products, stored on this phone. Works offline."
+                )
+            }
+            SettingCard {
+                SettingRow(
                     icon = InkIcons.Lock,
                     tint = Cartoon.YellowSoft,
                     title = "Your cabinet stays on this phone",

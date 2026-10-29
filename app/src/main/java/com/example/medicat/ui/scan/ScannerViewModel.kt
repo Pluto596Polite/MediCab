@@ -5,6 +5,8 @@ import androidx.lifecycle.viewModelScope
 import com.example.medicat.data.LabelScan
 import com.example.medicat.data.MedicationRepository
 import com.example.medicat.data.ScanInbox
+import com.example.medicat.data.lookup.MedicineCatalogue
+import com.example.medicat.data.lookup.SaMedicines
 import com.example.medicat.domain.LabelAccumulator
 import com.example.medicat.domain.LabelFields
 import com.example.medicat.domain.LabelParser
@@ -36,11 +38,13 @@ data class LabelScanState(
 @HiltViewModel
 class ScannerViewModel @Inject constructor(
     private val repository: MedicationRepository,
-    private val inbox: ScanInbox
+    private val inbox: ScanInbox,
+    private val saMedicines: SaMedicines
 ) : ViewModel() {
 
     private val accumulator = LabelAccumulator()
     private var knownNames: List<String> = emptyList()
+    private var catalogue: MedicineCatalogue? = null
 
     private val _state = MutableStateFlow(LabelScanState())
     val state: StateFlow<LabelScanState> = _state.asStateFlow()
@@ -48,12 +52,16 @@ class ScannerViewModel @Inject constructor(
     init {
         // Packs already in the cabinet are the best guess for the name.
         viewModelScope.launch { knownNames = repository.observeAll().first().map { it.name } }
+        // Then any product in the SA medicine list that the label names.
+        viewModelScope.launch { catalogue = saMedicines.catalogue() }
     }
 
     /** Text the live camera analyzer read from one frame. */
     fun onFrameText(lines: List<OcrLine>) {
         if (lines.isEmpty()) return
-        val fields = LabelParser.parse(lines, knownNames)
+        val parsed = LabelParser.parse(lines, knownNames)
+        val listed = catalogue?.productIn(lines.joinToString("\n") { it.text })
+        val fields = if (listed != null && parsed.name !in knownNames) parsed.copy(name = listed) else parsed
         if (fields.isEmpty) return
         accumulator.add(fields)
         _state.update { it.copy(fields = accumulator.current()) }

@@ -1,0 +1,16 @@
+# Popular South African products that aren't in the Department of Health's list of
+# registered medicines (complementary medicines, supplements, household remedies).
+# Kept by hand. Leave a field blank rather than guess it. Columns, tab-separated:
+# name, ingredients, strength, form, pack size, schedule, category, discontinued (0/1),
+# template (CARTON, BLISTER, CREAM_TUBE, PILL_BOTTLE, FIZZ_TUBE, SYRUP, JAR or blank)
+Berocca Performance						Vitamins	0	FIZZ_TUBE
+Bioplus						Vitamins	0	SYRUP
+Centrum			Tablet			Vitamins	0	PILL_BOTTLE
+Citro-Soda						Digestive	0	JAR
+Eno						Digestive	0	JAR
+Gaviscon Liquid			Liquid			Digestive	0	SYRUP
+Grand-Pa Headache Powders	Aspirin + Paracetamol + Caffeine					Pain relief	0	CARTON
+Rennie			Tablet			Digestive	0	CARTON
+Redoxon						Vitamins	0	FIZZ_TUBE
+Vicks VapoRub			Cream			Cold & flu	0	JAR
+Zam-Buk			Cream			First aid	0	JAR
