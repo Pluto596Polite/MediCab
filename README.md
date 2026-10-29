@@ -42,4 +42,11 @@ The South African medicine list is built from the Department of Health's medicin
 1. Bump `versionCode` and `versionName` in `app/build.gradle.kts` and commit.
 2. Run `tools/release.sh "What's new"`. It tests, builds and signs the APK with the upload key in `keystore.properties`, tags the commit and publishes the GitHub release.
 
+## License
+
+MediCab is open source under the [MIT License](LICENSE). Contributions and issues are welcome.
+
+- The fonts Fredoka and Nunito are under the SIL Open Font License (see `licenses/`).
+- The South African medicine list comes from the National Department of Health's public *Database of Medicine Prices*.
+
 Medicine information in MediCab is general information, not medical advice. Always follow the pack leaflet and your pharmacist or doctor.
