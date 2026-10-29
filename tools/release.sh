@@ -11,7 +11,8 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
-notes=${1:?Usage: tools/release.sh \"What's new in this version\"}
+usage='Usage: tools/release.sh "What is new in this version"'
+notes=${1:?$usage}
 version=$(sed -n 's/^ *versionName = "\(.*\)"/\1/p' app/build.gradle.kts)
 tag="v$version"
 
