@@ -20,7 +20,11 @@ data class Settings(
     /** Look scanned barcodes and medication uses up in public databases. */
     val onlineLookup: Boolean = true,
     /** The user's name for greetings; blank until they set it. */
-    val profileName: String = ""
+    val profileName: String = "",
+    /** Look for a newer MediCab release on GitHub when the app opens. */
+    val checkUpdates: Boolean = true,
+    /** The day (ISO date) an update was last offered, so it's offered at most once a day. */
+    val updateOfferedOn: String = ""
 ) {
     companion object {
         const val DEFAULT_REMINDER_DAYS = 30
@@ -43,7 +47,9 @@ class SettingsRepository @Inject constructor(
                 prefs[REMINDER_MINUTE] ?: Settings.DEFAULT_REMINDER_TIME.minute
             ),
             onlineLookup = prefs[ONLINE_LOOKUP] ?: true,
-            profileName = prefs[PROFILE_NAME].orEmpty()
+            profileName = prefs[PROFILE_NAME].orEmpty(),
+            checkUpdates = prefs[CHECK_UPDATES] ?: true,
+            updateOfferedOn = prefs[UPDATE_OFFERED_ON].orEmpty()
         )
     }
 
@@ -59,6 +65,14 @@ class SettingsRepository @Inject constructor(
 
     suspend fun setOnlineLookup(enabled: Boolean) {
         dataStore.edit { it[ONLINE_LOOKUP] = enabled }
+    }
+
+    suspend fun setCheckUpdates(enabled: Boolean) {
+        dataStore.edit { it[CHECK_UPDATES] = enabled }
+    }
+
+    suspend fun setUpdateOfferedOn(day: String) {
+        dataStore.edit { it[UPDATE_OFFERED_ON] = day }
     }
 
     suspend fun setProfileName(name: String) {
@@ -79,5 +93,7 @@ class SettingsRepository @Inject constructor(
         val REMINDER_MINUTE = intPreferencesKey("reminder_minute")
         val ONLINE_LOOKUP = booleanPreferencesKey("online_lookup")
         val PROFILE_NAME = stringPreferencesKey("profile_name")
+        val CHECK_UPDATES = booleanPreferencesKey("check_updates")
+        val UPDATE_OFFERED_ON = stringPreferencesKey("update_offered_on")
     }
 }

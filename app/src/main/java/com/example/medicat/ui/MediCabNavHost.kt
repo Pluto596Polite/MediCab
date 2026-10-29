@@ -49,6 +49,7 @@ import com.example.medicat.ui.settings.SettingsScreen
 import com.example.medicat.ui.splash.SplashOverlay
 import com.example.medicat.ui.splash.SplashRevealAt
 import com.example.medicat.ui.theme.Cartoon
+import com.example.medicat.ui.update.UpdatePrompt
 
 private object Routes {
     const val INVENTORY = "inventory"
@@ -106,6 +107,8 @@ fun MediCabNavHost() {
         ) {
             AppNavHost(navController)
         }
+        // Offered once the splash is out of the way.
+        if (!showSplash) UpdatePrompt()
         if (showSplash) {
             SplashOverlay(
                 onProgress = { splashProgress = it },

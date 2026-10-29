@@ -65,6 +65,17 @@ android {
             excludes += "/META-INF/{AL2.0,LGPL2.1}"
         }
     }
+    // GitHub releases ship one APK per processor type, since ML Kit's native
+    // libraries are most of the size; the in-app updater picks the right one.
+    // Debug builds stay a single APK.
+    splits {
+        abi {
+            isEnable = gradle.startParameter.taskNames.any { it.contains("Release") }
+            reset()
+            include("arm64-v8a", "armeabi-v7a", "x86_64")
+            isUniversalApk = true
+        }
+    }
 }
 
 ksp {

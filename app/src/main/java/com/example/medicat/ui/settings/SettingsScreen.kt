@@ -72,6 +72,8 @@ import com.example.medicat.data.SettingsRepository
 import com.example.medicat.data.transfer.CabinetTransfer
 import com.example.medicat.data.transfer.ExportFormat
 import com.example.medicat.data.transfer.ImportException
+import com.example.medicat.data.update.AppUpdater
+import com.example.medicat.data.update.UpdateCheck
 import com.example.medicat.notifications.ExpiryNotifier
 import com.example.medicat.notifications.ReminderScheduler
 import com.example.medicat.ui.components.CartoonButton
@@ -102,8 +104,11 @@ class SettingsViewModel @Inject constructor(
     private val settingsRepository: SettingsRepository,
     private val notifier: ExpiryNotifier,
     private val scheduler: ReminderScheduler,
-    private val transfer: CabinetTransfer
+    private val transfer: CabinetTransfer,
+    private val updater: AppUpdater
 ) : ViewModel() {
+
+    val installedVersion = updater.installedVersion
 
     val settings: StateFlow<Settings> = settingsRepository.settings
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), Settings())
@@ -116,6 +121,22 @@ class SettingsViewModel @Inject constructor(
 
     fun setNotificationsEnabled(enabled: Boolean) {
         viewModelScope.launch { settingsRepository.setNotificationsEnabled(enabled) }
+    }
+
+    fun setCheckUpdates(enabled: Boolean) {
+        viewModelScope.launch { settingsRepository.setCheckUpdates(enabled) }
+    }
+
+    /** Looks for a newer release; when there is one the update dialog opens, otherwise [onDone] says why not. */
+    fun checkForUpdates(onDone: (String) -> Unit) {
+        viewModelScope.launch {
+            when (val result = updater.check()) {
+                is UpdateCheck.Available -> Unit
+                is UpdateCheck.UpToDate -> onDone("You have the latest version (${result.version})")
+                UpdateCheck.Unreachable -> onDone("Couldn't reach GitHub. Check your connection.")
+                UpdateCheck.DebugBuild -> onDone("This is a development build. Install a release from GitHub to get updates.")
+            }
+        }
     }
 
     fun setOnlineLookup(enabled: Boolean) {
@@ -326,6 +347,26 @@ fun SettingsScreen(onBack: () -> Unit, viewModel: SettingsViewModel = hiltViewMo
                 )
             }
 
+            SectionHeading("Updates", Modifier.padding(top = 12.dp))
+            SettingCard {
+                SettingRow(
+                    icon = InkIcons.Reset,
+                    tint = Cartoon.PinkSoft,
+                    title = "Check for updates",
+                    subtitle = "When MediCab opens, look for a new version on GitHub. Only the request for the latest version is sent."
+                ) {
+                    CartoonSwitch(settings.checkUpdates, viewModel::setCheckUpdates)
+                }
+            }
+            SettingCard(onClick = { viewModel.checkForUpdates(toast) }) {
+                SettingRow(
+                    icon = InkIcons.Globe,
+                    tint = Cartoon.BlueSoft,
+                    title = "Check now",
+                    subtitle = "You have MediCab ${viewModel.installedVersion}"
+                )
+            }
+
             SectionHeading("Scanning & privacy", Modifier.padding(top = 12.dp))
             SettingCard {
                 SettingRow(
@@ -360,7 +401,7 @@ fun SettingsScreen(onBack: () -> Unit, viewModel: SettingsViewModel = hiltViewMo
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 MediCabLogo(size = 48.dp)
-                Text("MediCab 1.0", style = MaterialTheme.typography.bodySmall, color = Cartoon.InkMuted, textAlign = TextAlign.Center)
+                Text("MediCab ${viewModel.installedVersion}", style = MaterialTheme.typography.bodySmall, color = Cartoon.InkMuted, textAlign = TextAlign.Center)
             }
         }
     }

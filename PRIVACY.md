@@ -31,6 +31,10 @@ These requests contain only the barcode number or the name being looked up. They
 
 You can switch online lookups off at any time in **Profile › Reminders & settings › Look things up online**. Scanning and everything else then works entirely offline. The "Find common uses" button only connects when you tap it.
 
+When **Check for updates** is switched on in Settings (it is on by default), MediCab asks GitHub (GitHub, Inc.) for the latest MediCab release each time it opens, and downloads the new version from GitHub if you choose to update. The request contains nothing about you or your cabinet; GitHub receives your device's IP address, as with any website. You can switch this off and use **Check now** instead.
+
+Importing and exporting files happens entirely on your phone. MediCab only reads the file you pick and only writes to the place you choose.
+
 Google ML Kit, which reads barcodes and text on your device, may send Google anonymous information about how the scanning features perform (for example, device type and processing times). It does not send your camera images or the text it reads. See [Google's ML Kit data disclosure](https://developers.google.com/ml-kit/android-data-disclosure).
 
 ## Notifications
