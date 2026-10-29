@@ -18,6 +18,9 @@ interface MedicationDao {
     @Query("SELECT * FROM medications ORDER BY expiryDate ASC")
     fun getAllMedications(): Flow<List<MedicationEntity>>
 
+    @Query("SELECT * FROM medications ORDER BY expiryDate ASC")
+    suspend fun getAll(): List<MedicationEntity>
+
     @Query("SELECT * FROM medications WHERE id = :id")
     suspend fun getMedicationById(id: Int): MedicationEntity?
 

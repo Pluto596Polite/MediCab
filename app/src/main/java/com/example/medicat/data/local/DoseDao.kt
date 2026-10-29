@@ -14,6 +14,9 @@ interface DoseDao {
     @Query("DELETE FROM doses WHERE id = :id")
     suspend fun delete(id: Long)
 
+    @Query("SELECT * FROM doses ORDER BY takenAt DESC")
+    suspend fun getAll(): List<DoseEntity>
+
     @Query("SELECT * FROM doses ORDER BY takenAt DESC LIMIT :limit")
     fun observeRecent(limit: Int): Flow<List<DoseEntity>>
 }

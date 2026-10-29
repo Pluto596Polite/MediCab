@@ -1,12 +1,15 @@
 package com.example.medicat.ui.settings
 
 import android.Manifest
+import android.app.Activity
 import android.content.Context
 import android.content.Intent
+import android.net.Uri
 import android.os.Build
 import android.provider.Settings as AndroidSettings
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContract
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
@@ -66,6 +69,9 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewModelScope
 import com.example.medicat.data.Settings
 import com.example.medicat.data.SettingsRepository
+import com.example.medicat.data.transfer.CabinetTransfer
+import com.example.medicat.data.transfer.ExportFormat
+import com.example.medicat.data.transfer.ImportException
 import com.example.medicat.notifications.ExpiryNotifier
 import com.example.medicat.notifications.ReminderScheduler
 import com.example.medicat.ui.components.CartoonButton
@@ -85,6 +91,7 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import java.time.LocalDate
 import java.time.LocalTime
 import java.time.format.DateTimeFormatter
 import java.time.format.FormatStyle
@@ -94,7 +101,8 @@ import javax.inject.Inject
 class SettingsViewModel @Inject constructor(
     private val settingsRepository: SettingsRepository,
     private val notifier: ExpiryNotifier,
-    private val scheduler: ReminderScheduler
+    private val scheduler: ReminderScheduler,
+    private val transfer: CabinetTransfer
 ) : ViewModel() {
 
     val settings: StateFlow<Settings> = settingsRepository.settings
@@ -122,7 +130,50 @@ class SettingsViewModel @Inject constructor(
     }
 
     fun checkNow() = scheduler.runNow()
+
+    /** Writes the cabinet to [uri]; [onDone] gets the message to show. */
+    fun export(format: ExportFormat, uri: Uri, onDone: (String) -> Unit) {
+        viewModelScope.launch {
+            val message = runCatching { transfer.export(format, uri) }.fold(
+                onSuccess = { count -> "Exported $count ${if (count == 1) "medication" else "medications"} as ${format.label}" },
+                onFailure = { "Couldn't save the file" }
+            )
+            onDone(message)
+        }
+    }
+
+    /** Adds what's in [uri] to the cabinet; [onDone] gets the message to show. */
+    fun import(uri: Uri, onDone: (String) -> Unit) {
+        viewModelScope.launch {
+            val message = runCatching { transfer.import(uri) }.fold(
+                onSuccess = { it.summary() },
+                onFailure = { (it as? ImportException)?.message ?: "Couldn't read that file" }
+            )
+            onDone(message)
+        }
+    }
 }
+
+/** Opens the system "save as" screen for an export, suggesting a dated file name. */
+private class CreateExportFile : ActivityResultContract<ExportFormat, Uri?>() {
+    override fun createIntent(context: Context, input: ExportFormat): Intent =
+        Intent(Intent.ACTION_CREATE_DOCUMENT)
+            .addCategory(Intent.CATEGORY_OPENABLE)
+            .setType(input.mimeType)
+            .putExtra(Intent.EXTRA_TITLE, "MediCab cabinet ${LocalDate.now()}.${input.extension}")
+
+    override fun parseResult(resultCode: Int, intent: Intent?): Uri? =
+        intent?.data.takeIf { resultCode == Activity.RESULT_OK }
+}
+
+/** File types offered when importing; CSV often arrives as plain text or as an Excel type. */
+private val ImportTypes = arrayOf(
+    "application/json",
+    "text/*",
+    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    "application/vnd.ms-excel",
+    "application/octet-stream"
+)
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
@@ -132,6 +183,15 @@ fun SettingsScreen(onBack: () -> Unit, viewModel: SettingsViewModel = hiltViewMo
     var systemAllowsNotifications by remember { mutableStateOf(viewModel.canPostNotifications()) }
     var showTimePicker by rememberSaveable { mutableStateOf(false) }
     var showCustomDays by rememberSaveable { mutableStateOf(false) }
+    var showExport by rememberSaveable { mutableStateOf(false) }
+    var exportFormat by rememberSaveable { mutableStateOf(ExportFormat.EXCEL) }
+    val toast = { message: String -> Toast.makeText(context, message, Toast.LENGTH_LONG).show() }
+    val exportLauncher = rememberLauncherForActivityResult(CreateExportFile()) { uri ->
+        uri?.let { viewModel.export(exportFormat, it, toast) }
+    }
+    val importLauncher = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+        uri?.let { viewModel.import(it, toast) }
+    }
     val timeFormatter = remember { DateTimeFormatter.ofLocalizedTime(FormatStyle.SHORT) }
 
     val permissionLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) {
@@ -248,6 +308,24 @@ fun SettingsScreen(onBack: () -> Unit, viewModel: SettingsViewModel = hiltViewMo
                 }
             }
 
+            SectionHeading("Your data", Modifier.padding(top = 12.dp))
+            SettingCard(onClick = { showExport = true }) {
+                SettingRow(
+                    icon = InkIcons.Box,
+                    tint = Cartoon.YellowSoft,
+                    title = "Export cabinet",
+                    subtitle = "Save it as Excel, CSV, a JSON backup or a printable PDF"
+                )
+            }
+            SettingCard(onClick = { importLauncher.launch(ImportTypes) }) {
+                SettingRow(
+                    icon = InkIcons.Cabinet,
+                    tint = Cartoon.BlueSoft,
+                    title = "Import from a file",
+                    subtitle = "Add medications from Excel, CSV or a MediCab backup. Ones already in your cabinet are skipped."
+                )
+            }
+
             SectionHeading("Scanning & privacy", Modifier.padding(top = 12.dp))
             SettingCard {
                 SettingRow(
@@ -294,6 +372,17 @@ fun SettingsScreen(onBack: () -> Unit, viewModel: SettingsViewModel = hiltViewMo
             onConfirm = {
                 viewModel.setReminderTime(it)
                 showTimePicker = false
+            }
+        )
+    }
+    if (showExport) {
+        ExportDialog(
+            selected = exportFormat,
+            onSelect = { exportFormat = it },
+            onDismiss = { showExport = false },
+            onConfirm = {
+                showExport = false
+                exportLauncher.launch(exportFormat)
             }
         )
     }
@@ -433,5 +522,28 @@ private fun CustomDaysDialog(initial: Int, onDismiss: () -> Unit, onConfirm: (In
             trailing = { Text("days", style = MaterialTheme.typography.bodyLarge, color = Cartoon.InkMuted, modifier = Modifier.padding(end = 10.dp)) }
         )
         Text("Between 1 and 365", style = MaterialTheme.typography.bodySmall, color = if (valid) Cartoon.InkMuted else Cartoon.Red)
+    }
+}
+
+@Composable
+private fun ExportDialog(selected: ExportFormat, onSelect: (ExportFormat) -> Unit, onDismiss: () -> Unit, onConfirm: () -> Unit) {
+    CartoonDialog(title = "Export cabinet", onDismiss = onDismiss, confirmText = "Choose where", onConfirm = onConfirm) {
+        ExportFormat.entries.forEach { format ->
+            val isSelected = format == selected
+            Column(
+                Modifier
+                    .fillMaxWidth()
+                    .cartoon(
+                        if (isSelected) Cartoon.BlueSoft else Cartoon.Paper,
+                        RoundedCornerShape(16.dp),
+                        shadow = if (isSelected) 3.dp else 2.dp,
+                        onClick = { onSelect(format) }
+                    )
+                    .padding(horizontal = 14.dp, vertical = 10.dp)
+            ) {
+                Text("${format.label} (.${format.extension})", style = MaterialTheme.typography.titleSmall, color = Cartoon.Ink)
+                Text(format.description, style = MaterialTheme.typography.bodySmall, color = Cartoon.InkMuted)
+            }
+        }
     }
 }
