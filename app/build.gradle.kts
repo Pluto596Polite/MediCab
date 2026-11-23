@@ -88,7 +88,7 @@ dependencies {
     implementation("androidx.activity:activity-compose:1.13.0")
 
     // Compose
-    implementation(platform("androidx.compose:compose-bom:2026.03.01"))
+    implementation(platform("androidx.compose:compose-bom:2026.11.01"))
     implementation("androidx.compose.ui:ui")
     implementation("androidx.compose.ui:ui-graphics")
     implementation("androidx.compose.ui:ui-tooling-preview")
@@ -113,16 +113,16 @@ dependencies {
     ksp("androidx.hilt:hilt-compiler:1.4.0")
 
     // DataStore for preferences
-    implementation("androidx.datastore:datastore-preferences:1.2.0")
+    implementation("androidx.datastore:datastore-preferences:1.3.0")
 
     // WorkManager for daily expiry checks
     implementation("androidx.work:work-runtime-ktx:2.12.0")
 
     // CameraX + ML Kit barcode scanning (bundled model, works offline)
-    implementation("androidx.camera:camera-camera2:1.6.2")
-    implementation("androidx.camera:camera-lifecycle:1.6.2")
-    implementation("androidx.camera:camera-view:1.6.2")
-    implementation("androidx.camera:camera-mlkit-vision:1.6.2")
+    implementation("androidx.camera:camera-camera2:1.7.0")
+    implementation("androidx.camera:camera-lifecycle:1.7.0")
+    implementation("androidx.camera:camera-view:1.7.0")
+    implementation("androidx.camera:camera-mlkit-vision:1.7.0")
     implementation("com.google.mlkit:barcode-scanning:17.3.0")
     // On-device label reading for auto-filling scanned packs (bundled model, offline)
     implementation("com.google.mlkit:text-recognition:16.0.1")
@@ -132,7 +132,7 @@ dependencies {
     testImplementation("org.json:json:20240303")
     androidTestImplementation("androidx.test.ext:junit:1.3.0")
     androidTestImplementation("androidx.test.espresso:espresso-core:3.7.0")
-    androidTestImplementation(platform("androidx.compose:compose-bom:2026.03.01"))
+    androidTestImplementation(platform("androidx.compose:compose-bom:2026.11.01"))
     androidTestImplementation("androidx.compose.ui:ui-test-junit4")
     debugImplementation("androidx.compose.ui:ui-tooling")
     debugImplementation("androidx.compose.ui:ui-test-manifest")
